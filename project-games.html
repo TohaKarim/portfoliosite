@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Python Games Collection | Toha Karim Sujal</title>
+  <meta name="description" content="Case study: simple games in Python - Snake, Blocks and a retro platformer.">
+  <link rel="icon" href="images/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script>document.documentElement.classList.add('js')</script>
+</head>
+<body data-page="projects">
+
+<div class="container">
+  <div class="proj-hero">
+    <a class="back" href="projects.html"><i data-icon="back"></i> All projects</a>
+    <div class="kicker reveal">Project 03 &middot; Games</div>
+    <h1 class="reveal d1">Python <em>Games</em> Collection</h1>
+    <p class="lead reveal d2">Simple but complete games written in Python: <b>Snake</b>, <b>Blocks</b> and a retro console-style platformer.
+      They are small enough to finish, and rich enough to practise algorithms, object-oriented design and clean code.</p>
+
+    <div class="cover reveal"><img src="images/projects/game-snake.png" alt="Snake game screenshot" data-zoom></div>
+
+    <div class="meta reveal">
+      <div><small>My role</small><b>Developer (game logic, rendering, testing)</b></div>
+      <div><small>Stack</small><b>Python, Pygame</b></div>
+      <div><small>Games</small><b>Snake, Blocks, Retro platformer</b></div>
+      <div><small>Focus</small><b>Algorithms &amp; OOP</b></div>
+    </div>
+  </div>
+
+  <div class="block reveal">
+    <h2>The <em>idea</em></h2>
+    <p>Games are a fun way to practise real programming problems: collision detection, state machines, grids, timing and user input.
+      I built three classics to apply the same ideas in different ways and to see how much code can be shared between them.</p>
+  </div>
+
+  <div class="block reveal">
+    <h2>My <em>role</em> &amp; responsibilities</h2>
+    <div class="role-box">
+      <h3>What I personally did</h3>
+      <ul>
+        <li><i data-icon="check"></i> Designed the shared game loop and the structure of each game.</li>
+        <li><i data-icon="check"></i> Implemented movement, collisions, scoring, levels and game-over logic.</li>
+        <li><i data-icon="check"></i> Wrote the rendering code, including grids, sprites and the on-screen HUD.</li>
+        <li><i data-icon="check"></i> Play-tested and tuned speed and difficulty for each game.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="block">
+    <h2>Thought process &amp; <em>decisions</em></h2>
+    <div class="steps">
+      <div class="step reveal">
+        <div class="no">01</div>
+        <div class="content">
+          <h3>One loop, three games</h3><span class="why">Shared architecture</span>
+          <p>Every game follows the same cycle: read input, update the world, resolve collisions, draw, and wait for the next frame.
+            Writing that loop once let me focus each game on what makes it unique.</p>
+          <figure><img src="images/projects/games-loop.png" alt="Game loop diagram" data-zoom loading="lazy">
+            <figcaption>The 60 FPS game loop shared by all games</figcaption></figure>
+          <div class="decision"><b>Decision:</b> pass a time step (<code>dt</code>) to <code>update()</code> so speed does not depend on the computer's performance.</div>
+        </div>
+      </div>
+
+      <div class="step reveal">
+        <div class="no">02</div>
+        <div class="content">
+          <h3>Game 1: Snake</h3><span class="why">Grids, queues and collisions</span>
+          <p>The snake is a queue of grid cells: each move adds a new head and removes the tail, unless food was eaten. Collision checks are
+            simple set lookups, which keeps them fast.</p>
+          <div class="code-title"><i></i><i></i><i></i><span>snake.py</span></div>
+<pre><code><span class="k">def</span> <span class="f">step</span>(self):
+    head_x, head_y = self.body[0]
+    dx, dy = self.direction
+    new_head = ((head_x + dx) % COLS, (head_y + dy) % ROWS)   <span class="c"># wrap or die: your choice</span>
+
+    <span class="k">if</span> new_head <span class="k">in</span> self.body_set:                 <span class="c"># O(1) self-collision check</span>
+        self.alive = <span class="k">False</span>
+        <span class="k">return</span>
+
+    self.body.appendleft(new_head)
+    self.body_set.add(new_head)
+
+    <span class="k">if</span> new_head == self.food:
+        self.score += 10
+        self.food = self.spawn_food()
+    <span class="k">else</span>:
+        tail = self.body.pop()                    <span class="c"># deque: O(1) at both ends</span>
+        self.body_set.discard(tail)</code></pre>
+          <figure><img src="images/projects/game-snake.png" alt="Snake gameplay" data-zoom loading="lazy"><figcaption>Snake: score and best score HUD</figcaption></figure>
+          <div class="decision"><b>Decision:</b> store the body in a <code>deque</code> plus a <code>set</code> so both moving and collision checks run in constant time.</div>
+        </div>
+      </div>
+
+      <div class="step reveal">
+        <div class="no">03</div>
+        <div class="content">
+          <h3>Game 2: Blocks</h3><span class="why">Matrices, rotation and line clearing</span>
+          <p>Each piece is a small matrix. Rotating means transposing and reversing rows; before moving I test the new position against the board.
+            When a row is full it is removed and the rows above fall down, which raises the score and level.</p>
+          <figure><img src="images/projects/game-blocks.png" alt="Blocks game gameplay" data-zoom loading="lazy"><figcaption>Blocks: board, ghost piece, next piece and stats</figcaption></figure>
+          <div class="decision"><b>Decision:</b> "try the move, undo if invalid" keeps the movement code short and avoids many special cases.</div>
+        </div>
+      </div>
+
+      <div class="step reveal">
+        <div class="no">04</div>
+        <div class="content">
+          <h3>Game 3: Retro platformer</h3><span class="why">Physics and tile collisions</span>
+          <p>A side-scrolling, console-style game with gravity, jumping, coin collection and tile-based collisions. I separated horizontal and
+            vertical movement so the player slides along walls and lands on platforms correctly.</p>
+          <figure><img src="images/projects/game-retro.png" alt="Retro platformer gameplay" data-zoom loading="lazy"><figcaption>Retro platformer with an original pixel-art character</figcaption></figure>
+          <div class="decision"><b>Decision:</b> resolve X and Y collisions separately; it is a small change that removes most "stuck in the wall" bugs.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="block reveal">
+    <h2>Game <em>gallery</em></h2>
+    <div class="gallery">
+      <figure><img src="images/projects/game-snake.png" alt="Snake" data-zoom loading="lazy"><figcaption>Snake</figcaption></figure>
+      <figure><img src="images/projects/game-blocks.png" alt="Blocks" data-zoom loading="lazy"><figcaption>Blocks</figcaption></figure>
+      <figure><img src="images/projects/game-retro.png" alt="Retro platformer" data-zoom loading="lazy"><figcaption>Retro platformer</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="block reveal">
+    <h2>What I <em>learned</em></h2>
+    <ul class="learn">
+      <li><i data-icon="star"></i> Choosing the right data structure (deque, set, matrix) matters more than clever code.</li>
+      <li><i data-icon="star"></i> A shared architecture saves time and makes each new game easier to build.</li>
+      <li><i data-icon="star"></i> Play-testing finds bugs that unit tests never imagine.</li>
+    </ul>
+  </div>
+
+  <div class="pn">
+    <a href="project-library.html"><small>&larr; Previous</small><b>Library Management System</b></a>
+    <a class="next" href="contact.html"><small>Next &rarr;</small><b>Get in touch</b></a>
+  </div>
+</div>
+<div style="height:100px"></div>
+
+<script src="js/icons.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

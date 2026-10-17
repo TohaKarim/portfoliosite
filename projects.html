@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Projects | Toha Karim Sujal</title>
+  <meta name="description" content="Selected projects by Toha Karim Sujal: a FastAPI weather app, a library management system and Python games.">
+  <link rel="icon" href="images/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script>document.documentElement.classList.add('js')</script>
+</head>
+<body data-page="projects">
+
+<section class="page-head" style="padding-bottom:110px">
+  <div class="container">
+    <div class="sec-title reveal" data-bg="Portfolio"><h2>Sample <em>Projects</em></h2></div>
+    <p class="reveal" style="text-align:center;max-width:680px;margin:-30px auto 40px;color:var(--muted)">
+      Each project has its own page showing the problem, my role, the decisions I made along the way, and the result.
+    </p>
+
+    <div class="filters reveal">
+      <button class="on" data-f="all">All</button>
+      <button data-f="web">Web &amp; API</button>
+      <button data-f="database">Database</button>
+      <button data-f="games">Games</button>
+    </div>
+
+    <div class="cards">
+      <a class="card reveal" data-cat="web" href="project-weather.html">
+        <div class="thumb"><img src="images/projects/weather-ui.png" alt="Weather app interface" loading="lazy"><span class="num">01</span></div>
+        <div class="body">
+          <h3>Real-Time Weather App</h3>
+          <p>A weather application built with FastAPI that forecasts real-time weather. Features caching, validation and a responsive interface.</p>
+          <div class="tags"><span>FastAPI</span><span>REST API</span><span>JavaScript</span></div>
+          <span class="link-arrow">View project <i data-icon="arrow"></i></span>
+        </div>
+      </a>
+      <a class="card reveal d1" data-cat="database" href="project-library.html">
+        <div class="thumb"><img src="images/projects/library-ui.png" alt="Library management dashboard" loading="lazy"><span class="num">02</span></div>
+        <div class="body">
+          <h3>Library Management System</h3>
+          <p>Manage books, members, loans and fines with a normalised database and rule checks that keep data consistent.</p>
+          <div class="tags"><span>Python</span><span>SQL</span><span>ER design</span></div>
+          <span class="link-arrow">View project <i data-icon="arrow"></i></span>
+        </div>
+      </a>
+      <a class="card reveal d2" data-cat="games" href="project-games.html">
+        <div class="thumb"><img src="images/projects/game-snake.png" alt="Snake game screenshot" loading="lazy"><span class="num">03</span></div>
+        <div class="body">
+          <h3>Python Games Collection</h3>
+          <p>Snake, Blocks and a retro console-style platformer, all sharing one clean game-loop design.</p>
+          <div class="tags"><span>Python</span><span>Pygame</span><span>OOP</span></div>
+          <span class="link-arrow">View project <i data-icon="arrow"></i></span>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<script src="js/icons.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

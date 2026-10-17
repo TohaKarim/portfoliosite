@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Library Management System | Toha Karim Sujal</title>
+  <meta name="description" content="Case study: a library management system with a relational database, loans and fines.">
+  <link rel="icon" href="images/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script>document.documentElement.classList.add('js')</script>
+</head>
+<body data-page="projects">
+
+<div class="container">
+  <div class="proj-hero">
+    <a class="back" href="projects.html"><i data-icon="back"></i> All projects</a>
+    <div class="kicker reveal">Project 02 &middot; Database</div>
+    <h1 class="reveal d1">Library <em>Management</em> System</h1>
+    <p class="lead reveal d2">A system for managing a library's books, members, loans and fines. The focus was a clean relational
+      design and business rules that keep the data correct, even when something goes wrong halfway through an operation.</p>
+
+    <div class="cover reveal"><img src="images/projects/library-ui.png" alt="Library management dashboard" data-zoom></div>
+
+    <div class="meta reveal">
+      <div><small>My role</small><b>Developer (database design, logic, interface, testing)</b></div>
+      <div><small>Stack</small><b>Python, SQL (SQLite)</b></div>
+      <div><small>Type</small><b>Desktop / database application</b></div>
+      <div><small>Focus</small><b>Data integrity &amp; workflow</b></div>
+    </div>
+  </div>
+
+  <div class="block reveal">
+    <h2>The <em>problem</em></h2>
+    <p>Small libraries often track loans on paper or spreadsheets. That leads to double-issued books, lost records and
+      fines calculated by hand. I wanted one system where a librarian can search, issue and return books in seconds, and
+      where the rules are enforced by the software instead of by memory.</p>
+  </div>
+
+  <div class="block reveal">
+    <h2>My <em>role</em> &amp; responsibilities</h2>
+    <div class="role-box">
+      <h3>What I personally did</h3>
+      <ul>
+        <li><i data-icon="check"></i> Gathered requirements and modelled the data as an ER diagram.</li>
+        <li><i data-icon="check"></i> Created normalised tables with primary keys, foreign keys and constraints.</li>
+        <li><i data-icon="check"></i> Wrote the issue / return / fine logic inside safe database transactions.</li>
+        <li><i data-icon="check"></i> Built the search and book-management interface.</li>
+        <li><i data-icon="check"></i> Tested rule violations (limits, unpaid fines, unavailable books) and fixed edge cases.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="block">
+    <h2>Thought process &amp; <em>decisions</em></h2>
+    <p>From the first idea to the working system, in four steps.</p>
+
+    <div class="steps">
+      <div class="step reveal">
+        <div class="no">01</div>
+        <div class="content">
+          <h3>Model the data</h3><span class="why">Get the schema right before any code</span>
+          <p>I listed the real-world things (books, members, loans, fines) and how they relate. A loan connects one member to one
+            book at a time, and a fine can only exist because of a late loan.</p>
+          <figure><img src="images/projects/library-er.png" alt="ER diagram with Books, Members, Loans and Fines" data-zoom loading="lazy">
+            <figcaption>Entity-relationship design</figcaption></figure>
+          <div class="decision"><b>Decision:</b> keep <code>Loans</code> as its own table instead of adding columns to <code>Books</code>, so the full borrowing history is preserved.</div>
+        </div>
+      </div>
+
+      <div class="step reveal">
+        <div class="no">02</div>
+        <div class="content">
+          <h3>Design the workflow</h3><span class="why">Turn rules into steps</span>
+          <p>Issuing a book is more than inserting a row. The system must check the member's limit, outstanding fines and book availability
+            before it creates the loan, and must calculate a fine on return.</p>
+          <figure><img src="images/projects/library-flow.png" alt="Issue and return workflow" data-zoom loading="lazy">
+            <figcaption>Issue / return flow with the rules enforced at each step</figcaption></figure>
+          <div class="decision"><b>Decision:</b> enforce rules in one service layer, so the interface cannot bypass them.</div>
+        </div>
+      </div>
+
+      <div class="step reveal">
+        <div class="no">03</div>
+        <div class="content">
+          <h3>Implementation</h3><span class="why">Transactions protect the data</span>
+          <p>Issuing a book changes more than one table. Wrapping the steps in a transaction means either everything succeeds or nothing is saved.</p>
+          <div class="code-title"><i></i><i></i><i></i><span>library/service.py</span></div>
+<pre><code><span class="k">from</span> datetime <span class="k">import</span> date, timedelta
+
+MAX_LOANS = 3
+LOAN_DAYS = 14
+
+<span class="k">def</span> <span class="f">issue_book</span>(conn, member_id: int, book_id: int) -&gt; int:
+    <span class="k">with</span> conn:                                   <span class="c"># one atomic transaction</span>
+        active = conn.execute(
+            <span class="s">"SELECT COUNT(*) FROM loans WHERE member_id=? AND returned_on IS NULL"</span>,
+            (member_id,)).fetchone()[0]
+        <span class="k">if</span> active &gt;= MAX_LOANS:
+            <span class="k">raise</span> ValueError(<span class="s">"Member has reached the loan limit"</span>)
+
+        unpaid = conn.execute(
+            <span class="s">"""SELECT COUNT(*) FROM fines f JOIN loans l ON l.id=f.loan_id
+               WHERE l.member_id=? AND f.paid=0"""</span>, (member_id,)).fetchone()[0]
+        <span class="k">if</span> unpaid:
+            <span class="k">raise</span> ValueError(<span class="s">"Clear outstanding fines first"</span>)
+
+        cur = conn.execute(<span class="s">"UPDATE books SET copies = copies - 1 WHERE id=? AND copies &gt; 0"</span>, (book_id,))
+        <span class="k">if</span> cur.rowcount == 0:
+            <span class="k">raise</span> ValueError(<span class="s">"No copies available"</span>)
+
+        due = date.today() + timedelta(days=LOAN_DAYS)
+        cur = conn.execute(
+            <span class="s">"INSERT INTO loans(book_id, member_id, issued_on, due_on) VALUES (?,?,?,?)"</span>,
+            (book_id, member_id, date.today().isoformat(), due.isoformat()))
+        <span class="k">return</span> cur.lastrowid</code></pre>
+          <div class="decision"><b>Decision:</b> decrement copies with <code>WHERE copies &gt; 0</code> inside the same transaction, so two librarians cannot issue the last copy twice.</div>
+        </div>
+      </div>
+
+      <div class="step reveal">
+        <div class="no">04</div>
+        <div class="content">
+          <h3>Testing &amp; interface</h3><span class="why">Try to break it</span>
+          <p>I tested the rules on purpose: a fourth loan, borrowing with unpaid fines, returning an already returned book, and issuing
+            the last copy. Each one now fails with a clear message instead of corrupting data. Then I built the search and book list
+            you see on the cover image.</p>
+          <figure><img src="images/projects/library-ui.png" alt="Book list interface" data-zoom loading="lazy">
+            <figcaption>Book management screen with live search and availability status</figcaption></figure>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="block reveal">
+    <h2>The <em>result</em></h2>
+    <div class="results">
+      <div><b>4</b><span>Linked tables with enforced keys</span></div>
+      <div><b>3</b><span>Business rules checked on every loan</span></div>
+      <div><b>ACID</b><span>Safe, all-or-nothing operations</span></div>
+      <div><b>1</b><span>Source of truth for every loan and fine</span></div>
+    </div>
+  </div>
+
+  <div class="block reveal">
+    <h2>What I <em>learned</em></h2>
+    <ul class="learn">
+      <li><i data-icon="star"></i> Good schema design prevents entire classes of bugs.</li>
+      <li><i data-icon="star"></i> Transactions are essential whenever one action touches several tables.</li>
+      <li><i data-icon="star"></i> Thinking about failure cases first makes software dependable.</li>
+    </ul>
+  </div>
+
+  <div class="pn">
+    <a href="project-weather.html"><small>&larr; Previous</small><b>Real-time Weather App</b></a>
+    <a class="next" href="project-games.html"><small>Next project &rarr;</small><b>Python Games Collection</b></a>
+  </div>
+</div>
+<div style="height:100px"></div>
+
+<script src="js/icons.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

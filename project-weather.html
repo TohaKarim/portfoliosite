@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Real-Time Weather App | Toha Karim Sujal</title>
+  <meta name="description" content="Case study: a real-time weather forecast app built with FastAPI.">
+  <link rel="icon" href="images/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script>document.documentElement.classList.add('js')</script>
+</head>
+<body data-page="projects">
+
+<div class="container">
+  <div class="proj-hero">
+    <a class="back" href="projects.html"><i data-icon="back"></i> All projects</a>
+    <div class="kicker reveal">Project 01 &middot; Web &amp; API</div>
+    <h1 class="reveal d1">Real-time <em>Weather</em> App</h1>
+    <p class="lead reveal d2">A weather application built with <b>FastAPI</b> that forecasts real-time weather for any city. It searches the
+      place, fetches live forecast data, validates it and serves clean JSON to a responsive front-end.</p>
+
+    <div class="cover reveal" ><img src="images/projects/weather-ui.png" alt="Final weather app interface" data-zoom></div>
+
+    <div class="meta reveal">
+      <div><small>My role</small><b>Developer (design, backend, front-end, testing)</b></div>
+      <div><small>Stack</small><b>Python, FastAPI, httpx, JavaScript</b></div>
+      <div><small>Type</small><b>REST API + web client</b></div>
+      <div><small>Data source</small><b>Open-Meteo forecast API</b></div>
+    </div>
+  </div>
+
+  <!-- PROBLEM -->
+  <div class="block reveal">
+    <h2>The <em>problem</em></h2>
+    <p>Most weather sites are crowded with ads and slow to load. I wanted a fast, focused app that answers one question:
+      <i>"What is the weather like in this city, and what will it be over the next few days?"</i> The goal was also to learn how to
+      design an API that is quick, reliable when the upstream service fails, and easy for a front-end to use.</p>
+  </div>
+
+  <!-- ROLE -->
+  <div class="block reveal">
+    <h2>My <em>role</em> &amp; responsibilities</h2>
+    <div class="role-box">
+      <h3>What I personally did</h3>
+      <ul>
+        <li><i data-icon="check"></i> Sketched the interface and defined the API contract before writing any code.</li>
+        <li><i data-icon="check"></i> Built the FastAPI backend: city search, forecast endpoint, error handling and data models.</li>
+        <li><i data-icon="check"></i> Added an in-memory cache with a time-to-live to cut upstream calls and response time.</li>
+        <li><i data-icon="check"></i> Built the responsive JavaScript front-end that renders current conditions and a multi-day forecast.</li>
+        <li><i data-icon="check"></i> Tested edge cases such as unknown cities, upstream timeouts and unusual characters.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- PROCESS -->
+  <div class="block">
+    <h2>Thought process &amp; <em>decisions</em></h2>
+    <p>The project moved through four stages. At each one I recorded what I decided and why.</p>
+
+    <div class="steps">
+      <div class="step reveal">
+        <div class="no">01</div>
+        <div class="content">
+          <h3>Sketch &amp; requirements</h3><span class="why">Plan the user experience first</span>
+          <p>I drew a first-draft layout on paper: one search box, a large current temperature, and four forecast cards. Writing
+            down open questions early (caching, units, "city not found") shaped the backend design later.</p>
+          <figure><img src="images/projects/weather-sketch.png" alt="Hand-drawn wireframe of the weather app" data-zoom loading="lazy">
+            <figcaption>Draft 1: wireframe and notes (click to enlarge)</figcaption></figure>
+          <div class="decision"><b>Decision:</b> keep the UI to a single screen so the API only needs one main endpoint.</div>
+        </div>
+      </div>
+
+      <div class="step reveal">
+        <div class="no">02</div>
+        <div class="content">
+          <h3>Architecture</h3><span class="why">Separate responsibilities</span>
+          <p>The browser calls my FastAPI backend, never the weather provider directly. The backend checks a cache, calls the
+            geocoding and forecast services when needed, validates the response with Pydantic models and returns tidy JSON.</p>
+          <figure><img src="images/projects/weather-architecture.png" alt="Architecture diagram" data-zoom loading="lazy">
+            <figcaption>Request flow from browser to upstream API and back</figcaption></figure>
+          <div class="decision"><b>Decision:</b> use <b>async</b> endpoints with <code>httpx</code> so one slow request does not block others.</div>
+        </div>
+      </div>
+
+      <div class="step reveal">
+        <div class="no">03</div>
+        <div class="content">
+          <h3>Implementation</h3><span class="why">Small, testable pieces</span>
+          <p>I built geocoding, forecast fetching and caching as separate functions. Here is the core endpoint:</p>
+          <div class="code-title"><i></i><i></i><i></i><span>main.py</span></div>
+<pre><code><span class="k">import</span> time, httpx
+<span class="k">from</span> fastapi <span class="k">import</span> FastAPI, HTTPException
+
+app = FastAPI(title=<span class="s">"Weather API"</span>)
+_cache: dict[str, tuple[float, dict]] = {}   <span class="c"># city -> (timestamp, data)</span>
+TTL = 600                                    <span class="c"># seconds</span>
+
+<span class="k">async def</span> <span class="f">geocode</span>(client: httpx.AsyncClient, city: str) -&gt; dict:
+    r = <span class="k">await</span> client.get(<span class="s">"https://geocoding-api.open-meteo.com/v1/search"</span>,
+                         params={<span class="s">"name"</span>: city, <span class="s">"count"</span>: 1})
+    r.raise_for_status()
+    results = r.json().get(<span class="s">"results"</span>)
+    <span class="k">if not</span> results:
+        <span class="k">raise</span> HTTPException(404, <span class="s">"City not found"</span>)
+    <span class="k">return</span> results[0]
+
+<span class="f">@app.get</span>(<span class="s">"/weather"</span>)
+<span class="k">async def</span> <span class="f">weather</span>(city: str):
+    key = city.strip().lower()
+    hit = _cache.get(key)
+    <span class="k">if</span> hit <span class="k">and</span> time.time() - hit[0] &lt; TTL:
+        <span class="k">return</span> hit[1]                           <span class="c"># fast path</span>
+
+    <span class="k">try</span>:
+        <span class="k">async with</span> httpx.AsyncClient(timeout=10) <span class="k">as</span> client:
+            place = <span class="k">await</span> geocode(client, city)
+            r = <span class="k">await</span> client.get(<span class="s">"https://api.open-meteo.com/v1/forecast"</span>, params={
+                <span class="s">"latitude"</span>: place[<span class="s">"latitude"</span>], <span class="s">"longitude"</span>: place[<span class="s">"longitude"</span>],
+                <span class="s">"current_weather"</span>: <span class="k">True</span>, <span class="s">"timezone"</span>: <span class="s">"auto"</span>,
+                <span class="s">"daily"</span>: <span class="s">"temperature_2m_max,temperature_2m_min,precipitation_sum"</span>})
+            r.raise_for_status()
+    <span class="k">except</span> httpx.HTTPError:
+        <span class="k">raise</span> HTTPException(502, <span class="s">"Weather service unavailable"</span>)
+
+    data = {<span class="s">"city"</span>: place[<span class="s">"name"</span>], <span class="s">"country"</span>: place.get(<span class="s">"country"</span>),
+            <span class="s">"current"</span>: r.json()[<span class="s">"current_weather"</span>], <span class="s">"daily"</span>: r.json()[<span class="s">"daily"</span>]}
+    _cache[key] = (time.time(), data)
+    <span class="k">return</span> data</code></pre>
+          <div class="decision"><b>Decision:</b> return clear status codes (404 for unknown city, 502 for upstream failure) so the UI can show a helpful message.</div>
+        </div>
+      </div>
+
+      <div class="step reveal">
+        <div class="no">04</div>
+        <div class="content">
+          <h3>Testing &amp; measuring</h3><span class="why">Prove that the design choice worked</span>
+          <p>I compared response times with and without the cache. Repeated searches are served from memory in a few milliseconds,
+            instead of waiting for two network calls.</p>
+          <figure><img src="images/projects/weather-chart.png" alt="Bar chart comparing cached and uncached response times" data-zoom loading="lazy">
+            <figcaption>Cached vs uncached response time (illustrative sample: replace with your own benchmark)</figcaption></figure>
+          <div class="decision"><b>Decision:</b> a 10-minute TTL balances fresh data with speed, since forecasts do not change every second.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="block reveal">
+    <h2>The <em>result</em></h2>
+    <div class="results">
+      <div><b>1</b><span>Focused endpoint, easy for any client to use</span></div>
+      <div><b>~10 min</b><span>Cache lifetime to reduce upstream calls</span></div>
+      <div><b>404 / 502</b><span>Clear error handling for the UI</span></div>
+      <div><b>Async</b><span>Non-blocking I/O for concurrent users</span></div>
+    </div>
+    <div class="gallery" style="margin-top:34px">
+      <figure><img src="images/projects/weather-ui.png" alt="Final UI" data-zoom loading="lazy"><figcaption>Final interface</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="block reveal">
+    <h2>What I <em>learned</em></h2>
+    <ul class="learn">
+      <li><i data-icon="star"></i> Designing the API contract first makes the front-end and back-end easy to build in parallel.</li>
+      <li><i data-icon="star"></i> External services fail, so timeouts and meaningful error codes are essential.</li>
+      <li><i data-icon="star"></i> Measuring performance before and after turns an assumption into evidence.</li>
+    </ul>
+  </div>
+
+  <div class="pn">
+    <a href="projects.html"><small>&larr; Back</small><b>All projects</b></a>
+    <a class="next" href="project-library.html"><small>Next project &rarr;</small><b>Library Management System</b></a>
+  </div>
+</div>
+<div style="height:100px"></div>
+
+<script src="js/icons.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
